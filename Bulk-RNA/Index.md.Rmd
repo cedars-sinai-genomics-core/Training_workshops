@@ -25,7 +25,7 @@ In this tutorial we will spend some time to give background on the analyses that
 
 This tutorial assumes that you have a fairly strong working knowledge of R. Specifically we will be using a number of different functions from the (Tidyverse)[https://www.tidyverse.org] including `dplyr` and `ggplot2`. We'll also use a package called `cowplot` to get some more aesthetically pleasing themes for plots. Although most of these things can be achieved with base R functions, Tidy functions are much easier to read and behave more predictably that a lot of base R functions. Set up your R environment as follows:
 
-```{r}
+```{r libraries}
 # Load the tidyverse package
 library(tidyverse)
 library(cowplot)
@@ -97,7 +97,7 @@ The first challenge we have is that the best expression data to use is in the `_
 
 ## Prepare Expression Data
 
-```{r message=FALSE, warning=FALSE}
+```{r TPM_read, message=FALSE, warning=FALSE}
 # Read in the TPM expression values
 TPM <- read_csv("Demo/AS-9443--04--17--2020_TPM.csv")
 
@@ -107,7 +107,7 @@ head(TPM)
 
 We can already see a few issues. When plotting it is important to think about what each row represents. Ideally each row would represent an experimental observation and contain all the information we need to filter out observations or summarize them. Right now each row represents a combination of 6 observations and no distinction is made between treatments (Cov and Mock) or replicates (1, 2, or 3). Luckily that information is contained in the sample names, so we can take advantage of the consistent sample names to reshape the data and create a new data frame (`TPM_Reshape`) where each row represents a single TPM measurement from one gene in one treatment for one replicate. We'll create new columns (Treatment and Replicate) that will allow us to more easily filter the data if we need.
 
-```{r}
+```{r TPM_reshape}
 # Do the reshaping
 TPM_Reshape <- TPM %>% 
   pivot_longer(cols = c(2:7),names_to = "Sample", values_to = "TPM") %>% 
@@ -126,7 +126,7 @@ Let's look at what we did:
   
 One last thing to fix is to clean up the gene names. Right now the gene information is in the column `...1` and contains the ENSEMBL ID and the gene symbol separated by an underscore. We can use this consistent naming to split those two apart and create a new column with ust the gene symbol.
 
-```{r}
+```{r TPM_clean}
 TPM_Clean <- TPM_Reshape %>% 
   mutate(Gene=gsub("(\\w*\\.+\\d+)_(\\w*)", "\\2",`...1`),
          ...1=NULL,
@@ -143,7 +143,7 @@ Here we did a couple things:
   
 The final thing we want to do is to summarize this data. For a bar graph, we'll use the average expression for each treatment, but we'll also need standard error values. We can calculate those here and create a new data frame `TPM_Summary`.
 
-```{r}
+```{r TPM_summarize}
 TPM_Summary <- TPM_Clean %>% 
   group_by(Treatment, Gene) %>% 
   mutate(Avg_TPM = mean(TPM),
@@ -167,13 +167,13 @@ For the sake of ease, we'll just pick one gene to plot at first and then we'll g
 
 First we'll create a list of genes we want to plot. Right now, this list will only have one entry, but making a list now will make it easier to scale up later. Since we're usinga COVID dataset, lets pick a gene that we expect might have a strong difference like *ACE2*
 
-```{r}
+```{r GOI_bar_one}
 GOIs_1 <- c("ACE2")
 ```
 
 We can use tidy pipes to pipe our data right into ggplot and filter it for the genes of interest along the way. We'll use the `%in%` operator to only select the genes from our `TPM_Summary` that are present in our list of genes. Let's make a basic, but not very aesthetically pleasing bar graph of *ACE2*.
 
-```{r}
+```{r bar_plot_one_1}
 TPM_Summary %>% 
   filter(Gene %in% GOIs_1) %>% 
   ggplot(aes(x=Treatment,
@@ -185,7 +185,7 @@ This is the minimal plot of gene expression, we have picked the x-axis based on 
 
 We should add the error bars in order to get a better sense of how different these groups are. We'll do this with the built-in `geom_errorbar()`. We'll need to give it a max and min height for the error bar. Since we reshaped our data to include separate rows for the different treatments, the standard errors were automatically calculated separately like we need. We just need to specify that the top of the error bar is the sum of the average expression and the standard error, while the bottom is the average expression minues the standard error.
 
-```{r}
+```{r bar_plot_one_2}
 TPM_Summary %>% 
   filter(Gene %in% GOIs_1) %>% 
   ggplot(aes(x=Treatment,
@@ -202,7 +202,7 @@ Now the plot is technically complete in terms of data we need to represent, but 
   -   Remove the background grid lines and color
   -   Narrow the error bar a bit
   
-```{r}
+```{r bar_plot_one_3}
 TPM_Summary %>% 
   filter(Gene %in% GOIs_1) %>% 
   ggplot(aes(x=Treatment,
@@ -229,7 +229,7 @@ We added a couple things here, so let's talk about each one:
   
 Finally, we will want to save this plot to a file. R provides several ways to do this, but for a single plot, the easiest is with `ggsave()`. This will save the last plot that was created to a file. It supports several file formats including .pdf, .png, .jpeg, etc. For simple line drawings like this PDF is prefered since the file sizes are very small and you can zoom infinitely without loss of resolution. The function will automatically determine the format based on the file name you provide. You can also specify the dimensions of the final plot with `height=` and `width=`.
 
-```{r}
+```{r bar_save_one}
 TPM_Summary %>% 
   filter(Gene %in% GOIs_1) %>% 
   ggplot(aes(x=Treatment,
@@ -254,13 +254,13 @@ ggsave("Demo/Bar_1.pdf",
 
 Now that we have a desired plot format, we can pretty easily scale up to making several identical plots. Let's create a new list that has more than one gene, then we cna get to plotting.
 
-```{r}
+```{r GOI_bar_many}
 GOIs_Many <- c("ACE2", "SOX9", "PTPRC", "WNT4")
 ```
 
 To create the same plot many times, we'll use a tidyverse function called `map()`. This takes a list (technically a vector in R terms) of values and repeatedly applies the same function to on each item. `GOIs_Many` is our vector and the plot commands we just developed for one gene are our function that we'll repeatedly apply. When we pass the plotting function to `map()` we'll tell it to assign each gene name to a new variable called `gene_name`. Then, in our plotting commands, we'll substitute any place where we had included our single gene (`GOIs_1`) for this new variable (`gene_name`).
 
-```{r message=FALSE, warning=FALSE}
+```{r bar_plot_many, message=FALSE, warning=FALSE}
 map(GOIs_Many,
     function(gene_name){
       TPM_Summary %>% 
@@ -282,7 +282,7 @@ map(GOIs_Many,
 
 To save these plots, we can't use `ggsave()` since it only saves single-page files. Instead we can use a pair of functions that allow us to open a file, put some plots in it and then close the file. These functions are `pdf()` which opens or creates a new PDF file, and `dev.off()` which finalizes and closes the file. We can just place `pdf()` before and `dev.off()` after the map command we just wrote in order to get a multipage PDF with all of our plots.
 
-```{r}
+```{r bar_save_many, message=FALSE, warning=FALSE}
 pdf("Demo/Bar_Many.pdf",
        height=4,
        width=2)
@@ -306,15 +306,17 @@ map(GOIs_Many,
 dev.off()
 ```
 
+# Volcano Plot
 
+To get a higher-level summary of your experiment, it can be useful to create a volcano plot, which shows each gene as a point and plots the log2 fold change on the x-axis and the -log10 p-value on the y-axis. In this way, you can easy see how many genes are significantly up or down regulated.
 
-
+All of the data that we will need to create this plot are provided in the Tier 2 results and luckily are already in a format that is already very amenable to plotting.
 
 ## Prepare Differential Testing Data
 
-Luckily the data for the differential expression testing is in a much more plotting friendly format to begin with, so we won't need to do nearly as much reshaping.
+We'll read the data in first.
 
-```{r message=FALSE, warning=FALSE}
+```{r DEG_read, message=FALSE, warning=FALSE}
 # Read in data
 DEG <- read_csv("Demo/Cov_vs_Mock_DEGs_all.csv")
 
@@ -322,9 +324,9 @@ DEG <- read_csv("Demo/Cov_vs_Mock_DEGs_all.csv")
 head(DEG)
 ```
 
-Since we plan to merge to two data sets, we need to have a column with common values between them. In this case we can use the gene symbol as the common column, but we'll need to split the ENSEMBL IDs and symbols apart for this dataset too. Here we'll use a new argument `.before=1` to place the new column at the left of the data frame.
+Here the first column has the same format as with the expression data, where the gene name is provided as the ENSEMBL ID and the gene symbol separated by an underscore. If we ever want to filter the gene list or add labels to points, it will be useful to have only the gene symbol. It isn't strictly necessary for this tutorial to split the column, but we'll do it anyways in case you want to apply an advance plotting on your own. We'll usethe same `mutate()` command as before, but here we'll use a new argument `.before=1` to place the new column at the left of the data frame.
 
-```{r}
+```{r DEG_clean}
 DEG_Clean <- DEG %>% 
   mutate(Gene = gsub("(\\w*\\.+\\d+)_(\\w*)", "\\2",Row.names),
          .before=1)
@@ -333,3 +335,197 @@ DEG_Clean <- DEG %>%
 head(DEG_Clean)
 ```
 
+The main data transformation is to convert the p-value to -log10 scale. We could do that during the plotting, but it is computationally better to do it only once before ploting. To avoid overplotting, we will also filter the data to include only significant DEGs. This is a matter or aesthetic preference and you can simply leave out the filtering line to plot all of the genes regardless of significance.
+
+```{r DEG_filter}
+# Filter and transform
+DEG_Filtered <- DEG_Clean %>% 
+  filter(padj<0.05) %>% 
+  mutate(neg_log10_padj = -log10(padj))
+
+# Check how it looks
+head(DEG_Filtered)
+```
+
+## Plot
+
+Once you know the axes, the volcano plot is very straight forward to assemble. 
+
+```{r volc_plot}
+DEG_Filtered %>% 
+  ggplot(aes(x=log2FoldChange,
+             y=neg_log10_padj)) +
+  geom_point()
+```
+
+That's it for the technically complete volcano plot. Aesthetically, we will probably want to modify several things:
+
+  -   We can remove the background color and gridlines.
+  -   We can make the axis labels more readable.
+  -   Since there are many points, we can change the transparency of each point so that darker regions will imply many overlapping points.
+  -   We have two genes with very high fold changes. Those may or may not be interesting genes, but for illustration we will adjust the x-axis limits to show howto create a more symmetrical plot.
+
+We will also save the plot to a file.
+  
+```{r volc_save, message=FALSE, warning=FALSE}
+DEG_Filtered %>% 
+  ggplot(aes(x=log2FoldChange,
+             y=neg_log10_padj)) +
+  geom_point(alpha=0.2) +
+  theme_cowplot() +
+  labs(x=expression(log[2]~Fold~Change),
+       y=expression("-"*log[10]~Adj.~"p-value")) +
+  scale_x_continuous(limits = c(-10,10))
+ggsave("Demo/Volcano.pdf",
+       heigh=5,
+       width=6)
+```
+
+Let's review the specific changes that we made:
+
+  -   We used `theme_cowplot()` to quickly modify the background gridlines, background color, and font sizes.
+  -   We used `labs()` to manually rename the x- and y-axis labels. In order to get subscripts for the logarithms, we wrapped the label with the `expression()` function that allows us to write more mathematical statements. Syntactically, we can make subscripts by surrounding a number with square brackets, we add spaces by using the tilde (`~`) and we can place two strings adjacent with no space using an asterisk (`*`).
+  -   We reset the limits of the x-axis to ±10 with `scale_x_continuous(limits = c(-10,10))`.
+  -   We changed the transparency of the points to all by 20% transparent by adding the `alpha=0.2` argument to the `geom_point()` function.
+
+
+# GO Enrichment
+
+The default GO enrichment plots that we provide show many, many GO terms that are significantly enriched so that researchers can get an overview of all the enriched terms. This can often be overwhelming and ultimately this number of terms is not amenable to plotting for publication since the lists often include a lot of terms that are not specific to the experiment at hand or are redundant. Here we'll show you how to create a GO enrichment bar plot with only a subset of the terms of interest.
+
+The first thing you will need is to create a vector that contains the terms you want to include. The best way to do this is to look through either the `GO.csv` file or one of the PDFs and select a few IDs of terms you'd like. We'll just make a list of a few terms selected at random from the `GO.csv` file. I've ignored significance here so we are making a nonsensical graph for learning purposes.
+
+```{r GO_select}
+GO_Terms <- c("GO:0010454", "GO:0048245", "GO:0002730", "GO:0000778", "GO:0050786", "GO:0001741", "GO:0051119")
+```
+
+## Prepare GO List
+
+The main thing we'll need to do to this list after we read it in is to filter it, which should be very straight forward compared now that we've completed the filtering and cleaning of the expression and DEG lists.
+
+```{r GO_read, message=FALSE, warning=FALSE}
+# Read in
+GO <- read_csv("Demo/GO.csv")
+
+# Check how it looks
+head(GO)
+```
+
+
+Now we'll filter the list to only include the rows where the ID column matches a value in the list we have just made (`GO_Terms`)
+
+
+```{r GO_filter}
+GO_Filtered <- GO %>% 
+  filter(ID %in% GO_Terms)
+
+# check how it looks
+GO_Filtered
+```
+
+The order that we arrange the terms in isa matter of preference. Often we want the terms with the highest fold enrichment first, but we might want those with the lowest adjusted p-value first instead. We'll arrange the terms by fold enrichment score here, but you could modify the plot by substituting the `fold_enrichment_score` for `p.adjust` instead. When we plot, ggplot can be very arbitrary in how it orders categorical variables like our `Description` column. To force an order, we can convert the column from simple character text into a factor. In R, factors have levels with an implied order to them, which can be directly specified to sort things in a plot. We'll use `mutate()` to convert the `Description` column into a factor with it's levels listed in order of descending fold enrichment.
+
+```{r GO_reorder}
+GO_Sort <- GO_Filtered %>% 
+  mutate(Description = factor(Description,
+                              levels = GO_Filtered$Description[order(GO_Filtered$Fold_Enrichment_Score)])) 
+  
+```
+
+Note that we didnt create a new column; we overwrote the old one by using the same name for the new and old columns.
+
+We'll create two different arrangements of the plot. The first is a simpler bar plot to show the fold enrichment, and then we will plot it as points and play with the color and size of the dots to layer on other dimensions of data.
+
+## GO Bar Plot
+
+We'll use the text descriptions of terms as categorical y-axis values and plot the fold enrichment scores as the continuous x-value. We'll also save time here by applying the theme elements from previous plots right away.
+
+```{r GO_plot_bar}
+GO_Sort %>% 
+  ggplot(aes(y=Description,
+             x=Fold_Enrichment_Score)) +
+  geom_col() +
+  theme_cowplot() +
+  labs(x="Fold Enrichment Score",
+       y=NULL,
+       title="Selected GO Terms")
+ggsave("Demo/GO_Bar.pdf",
+       height=4,
+       width=7)
+```
+
+## Alternative GO Plot
+
+The above plot is great, but we have lost the information about adjusted p-values and number of genes in each term. You could mention those in the tet of your manuscript, but we can also use another plot to show them all at once. Sometimes you may not need to include all of this information or it may distract from the conclusion you are trying to convey, so try both and pick your favorite.
+
+```{r GO_plot_point1}
+GO_Sort %>% 
+  ggplot(aes(x=Fold_Enrichment_Score,
+             y=Description,
+             size=Count,
+             color=p.adjust)) +
+  geom_point()
+```
+
+
+I've purposely left this initial graph in a pretty rough state so that we can talk about ways to modify size and color aesthetics. Right now we have a lot more information conveyed, but the color scale implicitly draws your eye to the worst p-values, and we have also left out the ontology of the GO terms, which we can layer on with faceting.
+
+Let's tackle the theming first and then move on to faceting.
+
+```{r GO_plot_point2}
+GO_Sort %>% 
+  ggplot(aes(x=Fold_Enrichment_Score,
+             y=Description,
+             size=Count,
+             color=p.adjust)) +
+  geom_point() +
+  theme_cowplot() +
+  labs(y=NULL,
+       x="Fold Enrichment Score",
+       title="Selected GO Terms") +
+  scale_color_gradient(high="black",
+                       low="red",
+                       name="Adj. p-value") +
+  guides(size = guide_legend(title = "Gene Count"),
+         color = guide_legend(reverse=F))
+```
+
+Here we have used `labs()` and `theme_cowplot()` as before, but we've newly added `scale_color_gradient()` and `guides()`. It's worth talking about each of these for a little bit.
+
+There are many variations of `scale_X_Y()` where X stands for whatever aesthetic you want to modify (color, fill, size, alpha, x-axis, y-axis) and Y stands for how the scale is structured (continuous, discrete, gradient, etc). We've used `scale_y_continuous()` before to modify elements of a continuous y-axis scale, and we're doing the same thing now to modify a color gradient scale. Specifically we are now specifying the colors for the high and low values. We can do this with a handful of natural language colors ("black", "red"), but we could also use hex values for more precise colors ("#FFFFFF" or "#FF0000'). We also change the title of the color legend from the default 'p.adjust' to "Adj. p-value" with the `name=` argument. There are many other options inside of the scale functions.
+
+Another related function is `guides()` which doesnt modify the scale directly, but instead modifies how that scales is represented in the legend. In our case we are using `guides()` to modify elements of both the legend for size and the legend for color. We specify that we want the legend for size to be the type `guide_legend()` which matches the style of the legend to the geom we used for plotting, points in this case. This doesnt acutally change anything from the default, but we use the argument within to change the title of the size legend from "Count" to "Gene Count". We could have accomplished the same thing with `scale_size_continuous(name="Gene Count")` though. We also use guides to modify aspects of the color scale that we can't access through `scale_color_gradient()`. Namely, we don't want a color bar, but instead want points that match the geom we've used. This has the implicit side effect of reversing the scale so that smaller values are at the top, which is better for out p-value scale.
+
+## Faceting
+
+Up until now, the one thing we've left out of the GO plots is the distinction between the three ontology classes (biological process, molecular function, and cellular component). Many researchers only want biological process, but soem really care other the other classes, and it can be useful to separate them on a graph.
+
+We can do this with faceting, which breaks up a single graph into small multiples based on the values in one or more columns. In this case, we'll create one smaller graph for each of the three ontology classes using `facet_grid()`. to save space, we'll also save this as our final GO term plot
+
+```{r GO_save_point}
+GO_Sort %>% 
+  ggplot(aes(x=Fold_Enrichment_Score,
+             y=Description,
+             size=Count,
+             color=p.adjust)) +
+  geom_point() +
+  theme_cowplot() +
+  labs(y=NULL,
+       x="Fold Enrichment Score",
+       title="Selected GO Terms") +
+  scale_color_gradient(high="black",
+                       low="red",
+                       name="Adj. p-value") +
+  guides(size = guide_legend(title = "Gene Count"),
+         color = guide_legend(reverse=F)) +
+  facet_grid(rows = "ONTOLOGY",
+             scales = "free",
+             space = "free")
+
+ggsave("Demo/GO_Point.pdf",
+       height = 5,
+       width=9)
+```
+
+
+Within the `facet_wrap()` function, you specify the columns of the data from that will be used to create rows of facets with `rows=` and/or columns of facets with `columns=`. Here we use the data column `ONTOLOGY`, whose three values (BP, CC, MF) will be used to create three rows of facets. By default the facets will have the exact same x- and y-axes and will each take up the same amount of space. Since our y-axis contains terms that each belong to only one ontology, this will create a lot of blank spaces. To avoid this, we can set `scales="free"` and `size="free"` in order to allow both the axis values and the plot sizes to differ among the facets.
