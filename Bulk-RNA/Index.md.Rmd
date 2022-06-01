@@ -400,6 +400,61 @@ Let's review the specific changes that we made:
   -   We changed the transparency of the points to all by 20% transparent by adding the `alpha=0.2` argument to the `geom_point()` function.
 
 
+## Highlight a Gene
+
+Oftentimes the volcano plot is used not just to show the summary of the data, but to highlight where one of a few key genes fit into that summary. To do this, we can highlight genes with labels. This works well when the genes are few in number. Larger numbers of genes can be highlighted like this, but it often requires a lot of manual adjustments on the plots to prevent overlapping labels.
+
+```{r}
+library(ggrepel)
+```
+
+
+We'll use a new package called `ggrepel` to add labels that automatically repel each other to help with overlaps, though it is not always perfect. I'll pick 4 genes to label, but the process is the same with more or fewer genes. These genes are picked mostly based on their position and not on any biological sense.
+
+```{r}
+GOIs_2 <- c("ACE2", "ENHO", "IL11", "LDB3")
+```
+
+We'll use the `mutate()` function again to create a new column called `label`. If the gene name is contained in the `GOIs_2` set we just created above, the label column with have the name of the gene, if the gene isn't in that set, then the label column will have `NA`. Any row with `NA` won't be labelled, so this dummy column will be used to label the points.
+
+```{r}
+DEG_Filtered %>% 
+  mutate(label = ifelse(Gene %in% GOIs_2, Gene, NA)) %>% 
+  ggplot(aes(x=log2FoldChange,
+             y=neg_log10_padj)) +
+  geom_point(alpha=0.2) +
+  theme_cowplot() +
+  labs(x=expression(log[2]~Fold~Change),
+       y=expression("-"*log[10]~Adj.~"p-value")) +
+  scale_x_continuous(limits = c(-10,10)) +
+  geom_text_repel(aes(label = label,
+                      fontface="italic"))
+```
+
+The `geom_text_repel` layer is only available after you like the `ggrepel` library and within that we set two aesthetic values with `aes()`. The first was the text for the labels themselves, which are simply drawn from the `label` column we created with mutate()`, and the second is the `fontface=` argument that makes sure the gene names are italicized. You can see in the plot above that the points are technically labeled and don't overlap one another, but they are often sort of ambiguously placed by default. For this we have to do some manual adjustments, and you'll quickly see how this can get hairy with a lot of genes to plot at once.
+
+```{r}
+DEG_Filtered %>% 
+  mutate(label = ifelse(Gene %in% GOIs_2, Gene, NA)) %>% 
+  ggplot(aes(x=log2FoldChange,
+             y=neg_log10_padj)) +
+  geom_point(alpha=0.2) +
+  theme_cowplot() +
+  labs(x=expression(log[2]~Fold~Change),
+       y=expression("-"*log[10]~Adj.~"p-value")) +
+  scale_x_continuous(limits = c(-10,10)) +
+  geom_text_repel(aes(label = label,
+                      fontface="italic"),
+                  box.padding = 1,
+                  ylim = c(20,60),
+                  xlim = c(-1,1))
+ggsave("Demo/Volcano_Labeled.pdf",
+       heigh=5,
+       width=6)
+```
+There are several non-aesthetic arguments you can use to control the placement of the labels, but none are perfect. Here we have set `box.padding=1` so that the labels repel each other more than the default. We have also set the `xlim=` and `ylim=` to create an allowed area of the plots where the labels can live.
+
+
 # GO Enrichment
 
 The default GO enrichment plots that we provide show many, many GO terms that are significantly enriched so that researchers can get an overview of all the enriched terms. This can often be overwhelming and ultimately this number of terms is not amenable to plotting for publication since the lists often include a lot of terms that are not specific to the experiment at hand or are redundant. Here we'll show you how to create a GO enrichment bar plot with only a subset of the terms of interest.
