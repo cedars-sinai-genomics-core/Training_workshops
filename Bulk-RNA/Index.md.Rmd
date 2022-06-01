@@ -34,7 +34,6 @@ library(cowplot)
 
 We assume that you have run results for both Tier 1 (mapping and QC) and Tier 2 (differential analysis) since this provides a rich data set of sample-level gene expression data, significance of differential expression between treatments, and functional enrichment analysis of the DEGs. For this tutorial we provide data from a [published COVID-19 study](https://doi.org/10.1016/j.xcrm.2020.100052) that was analyzed at the Cedars-Sinai Genomics Core.
 
-  -   Counts table: AS-9443--04--17--2020_COUNTS.csv
   -   DEG list: Cov_vs_Mock_DEGs_all.csv
   -   Gene Ontology (GO) Term Enrichment: Cov_vs_Mock_GO.csv
   
@@ -44,7 +43,7 @@ At the Genomics Core we have divided our bioinformatic analysis services into se
 
 ## Tier 1 
 
-This level corresponds to the most basic analysis any researcher could need, and, in the case of bulk RNA-seq, involves mapping the reads to a reference genome, quantifying gene expression for each sample, and performing some quality control. In the case where the Genomics Core has done the library prep, this quality control is examine prior to delivery to ensure that both the library prep and sequencing worked well and that we've done everything we can to ensure you have an analyzable experiment. The files are prefixed with the iLab Service ID and uploaded to the GenomicsCloud in the following structure:
+This level corresponds to the most basic analysis any researcher could need, and, in the case of bulk RNA-seq, involves mapping the reads to a reference genome, quantifying gene expression for each sample, and performing some quality control. In the case where the Genomics Core has done the library prep, this quality control is examine prior to delivery to ensure that both the library prep and sequencing worked well and that we've done everything we can to ensure you have an analyzable experiment. The files are prefixed with the iLab Service ID and uploaded to the GenomicsCloud/Box.com in the following structure:
 
 ```
 Primary_data_processing/
@@ -58,7 +57,7 @@ Primary_data_processing/
 
 The file ending with `.multiqc.html` provides an interactive summary of the run and shows mapping of the reads to various genomic regions, the amount of duplicated reads. The file ending in `_QC.pdf` is a static version of several of these graphs, and the file ending in `_QC.txt` is a numeric summary of many of the metrics.
 
-The other three files, ending with `_COUNTS.csv`, `_FPKM.csv`, and `_TPM.csv` each summarize gene expression for the samples. In each file, the first column contains gene names with both the ENSEMBL gene ID and the gene symbol separated by an underscore (e.g. ENSG00000125398.8_SOX9). The first row contains sample names, although they will have additional information suffixed on. Typically this suffix is something like "_S5_R1_trimmed.genes.results" and it can be ignored for this tutorial. The other cells in the sheets show the expression of a given gene in a given sample. The sheets differ in the ways they summarize expression. `_COUNTS.csv` is the most low-level summary showing the number of reads overlapping a given gene. The quantification software (RSEM) also takes into account the possibility if different isoforms and overlapping genes when creating this summary, although it does not report on the isoform-level. `_FPKM.csv` and `_TPM.csv` each apply different corrections to account for the sequencing depth of the library and the length of genes, each of which can strongly bias the raw count. [Which one you choose](https://www.rna-seqblog.com/rpkm-fpkm-and-tpm-clearly-explained/) is up for debate and depends on the analysis. For differential expression analyses counts are preferred by the softwares, which perform their own corrections. For graphing expression, TPM provides the most comparable summary across samples.
+The other three files, ending with `_COUNTS.csv`, `_FPKM.csv`, and `_TPM.csv` each summarize gene expression for the samples. In each file, the first column contains gene names with both the ENSEMBL gene ID and the gene symbol separated by an underscore (e.g. ENSG00000125398.8_SOX9). The first row contains sample names, although they will have additional information suffixed on. Typically this suffix is something like "_S5_R1_trimmed.genes.results" and it can be ignored for this tutorial. The other cells in the sheets show the expression of a given gene in a given sample. The sheets differ in the ways they summarize expression. `_COUNTS.csv` is the most low-level summary showing the number of reads overlapping a given gene. The quantification software (RSEM) also takes into account the possibility if different isoforms and overlapping genes when creating this summary, although it does not report on the isoform-level. `_FPKM.csv` and `_TPM.csv` each apply different corrections to account for the sequencing depth of the library and the length of genes, each of which can strongly bias the raw count. [Which one you choose](https://www.rna-seqblog.com/rpkm-fpkm-and-tpm-clearly-explained/) is up for debate and depends on the analysis. For differential expression analyses counts are preferred by the softwares, which perform their own corrections. For graphing expression, TPM or normalized counts provides the most comparable summary across samples.
 
 ## Tier 2
 
@@ -81,7 +80,7 @@ Analysis/
 
 Similar to Tier 1, this analysis includes an interactive summary `.html` file, with several of the summary graphs also present as static PDFs include a heatmap, MA plot, PCA, and volcano plot. For differential expression testing, we provide a sheet with all genes tested, regardless of significance (`Treatment_vs_Control_DEGs_all.csv`), but we also provide a filtered list with a more manageable number of DEGs. The filtering criteria adapt to provide the researcher with between 200 and 2000 DEGs if possible. For that reason, you're specific experiment may not have `Treatment_vs_Control_DEGs_padj0.05.csv`, but instead might have `Treatment_vs_Control_DEGs_p0.05.csv` or another filtering criteria appended to the end. Whatever your desired cutoff, you can always go back to the unfiltered list and create the most useful subset though.
 
-The first column of the DEG list is the same combined gene name as in the expression matrices from Tier 1. The second column is the base mean, which provides the **normalized** expression from the control group, while the `log2FoldChange` shows the expression change (in log2 units) for the treatment group. This is followed by a raw p-value, and an adjusted p-value. The adjusted p-value is a more conservating metric and attempts to reduce the number of genes incorrectly called significant because they are false positives. The remaining columns show the **normalized** expression for the samples in the dataset. 
+The first column of the DEG list is the same combined gene name as in the expression matrices from Tier 1. The second column is the base mean, which provides the average **normalized** expression from the control group, while the `log2FoldChange` shows the expression change (in log2 units) for the treatment group. This is followed by a raw p-value, and an adjusted p-value. The adjusted p-value is a more conservative metric and attempts to reduce the number of genes incorrectly called significant because they are false positives. The remaining columns show the **normalized** expression for the samples in the dataset. 
 
 If you have requested a pathway analysis we can provide GO term enrichment, KEGG term enrichment, and/or GSEA. In the above example, we only show a GO term result. `GO.csv` is a list of all of the enriched GO terms from this comparison. By default we only use differentially expressed genes as the input for this analysis, so it is important to settle on an appropriate filtering criteria before this analysis. The first column in this sheet separated the terms into three broad `ONTOLOGY` classes: biological process (BP), molecular function (MF), and cellular component (CC). This is followed by an `ID` number for the term and a `Description` of the term. The `fold enrichment` comes next and describes how enriched this term is among your list of DEGs compared to the rest of the genome. `Count` shows how many genes in your DEG list are annotated with this term, `pvalue` and `p.adjust` show the raw and adjusted p-values, respectively, and finally `geneID` lists all of the gene names in your DEG list that are annotated with this term.
 
@@ -93,69 +92,85 @@ We also provide more custom bioinformatic services like network analysis, deconv
 
 The first question most researchers have is "Is my favorite gene differentially expressed?". Apart from showing a table with p-values, there are many ways to represent this visually. The most common method of one or a few genes is a bar graph.
 
-The first challenge we have is that the best expression data to use is in the `_TPM.csv` file, but the p-values that tell us if the change in expression is significant or not are in the `_DEGs_all.csv` file. First we'll read in and prepare the expression data, do the same with the differential expression testing, and finally merge them. 
+For this summary, all of the necessary information in present in the Tier 3 analysis file named ending `_DEGs_all.csv`. If your experiment has multiple comparisons that are made, make sure you select the file for the appropriate comparison.
+
 
 ## Prepare Expression Data
 
-```{r TPM_read, message=FALSE, warning=FALSE}
-# Read in the TPM expression values
-TPM <- read_csv("Demo/AS-9443--04--17--2020_TPM.csv")
+We'll read the data in first.
+
+```{r DEG_read, message=FALSE, warning=FALSE}
+# Read in data
+DEG <- read_csv("Demo/Cov_vs_Mock_DEGs_all.csv")
 
 # Check how it looks
-head(TPM)
+head(DEG)
 ```
 
-We can already see a few issues. When plotting it is important to think about what each row represents. Ideally each row would represent an experimental observation and contain all the information we need to filter out observations or summarize them. Right now each row represents a combination of 6 observations and no distinction is made between treatments (Cov and Mock) or replicates (1, 2, or 3). Luckily that information is contained in the sample names, so we can take advantage of the consistent sample names to reshape the data and create a new data frame (`TPM_Reshape`) where each row represents a single TPM measurement from one gene in one treatment for one replicate. We'll create new columns (Treatment and Replicate) that will allow us to more easily filter the data if we need.
+When plotting it is important to think about what each row represents. In this summary table, rows correspond to individual genes, which is great for getting an overview of your experiment (that's why we provide it this way), but for plotting, ideally each row would represent an independent experimental observation and contain all the information we need to filter out observations or summarize them. Right now each row represents a combination of 6 observations and no distinction is made between treatments (Cov and Mock) or replicates (1, 2, or 3). Luckily that information is contained in the sample names, so we can take advantage of the consistent sample names to reshape the data and create a new data frame (`DEG_Reshape`) where each row represents a single normalized count measurement from one gene in one treatment for one replicate. We'll create new columns (Treatment and Replicate) that will allow us to more easily filter the data if we need, and we'll remove the `baseMean`, `log2FoldChange`, `pvalue`, and `padj` columns since they present data at a gene-level and wouldn't make sense for a sample-level table anymore.
 
-```{r TPM_reshape}
-# Do the reshaping
-TPM_Reshape <- TPM %>% 
-  pivot_longer(cols = c(2:7),names_to = "Sample", values_to = "TPM") %>% 
-  mutate(Treatment = gsub("(Cov|Mock)(\\d*)_S\\d*_R\\d*_trimmed.genes.results","\\1",Sample),
-         Replicate = gsub("(Cov|Mock)(\\d*)_S\\d*_R\\d*_trimmed.genes.results","\\2",Sample))
+Here the first column has the same format as with the expression data, where the gene name is provided as the ENSEMBL ID and the gene symbol separated by an underscore. If we ever want to filter the gene list or add labels to points, it will be useful to have only the gene symbol. It isn't strictly necessary for this tutorial to split the column, but we'll do it anyways in case you want to apply an advance plotting on your own.
 
-#Take a peak at how it looks now
-head(TPM_Reshape)
+```{r}
+DEG_Reshape <- DEG %>% 
+  pivot_longer(cols = c(6:11),
+               names_to = "Sample",
+               values_to = "NormCount") %>% 
+  mutate(Treatment = gsub("(Cov|Mock)(\\d*)","\\1",Sample),
+         Replicate = gsub("(Cov|Mock)(\\d*)","\\2",Sample))
+
+# Check how it looks
+head(DEG_Reshape)
 ```
 
-Let's look at what we did:
+Let's summarize what we just did:
 
-  -   We used a function called `pivot_longer()` to reshape the data frame such that we have one column with all the sample names and another column with all the TPM values instead of one column for each sample. In this new format the gene names are repeated, but it means that each row of the data frame represent a single observation. For this function, we told R which columns to pivot (`cols=`) and what to name the new column with sample names (`names_to=`) and the column of values (`values_to`). There are many ways to select the columns of sample names, but in this case, we just used columns 2 through 7. We called the new columns "Samples" and the values "TPM".
-  -   Next we used a function called `mutate()` to create two new columns (`Treatment` and `Replicate`). We recognized that the treatment is the first part of the sample name and is immediately followed by the replicate number, and everything after that is junk but it follows the same pattern. We made a [regular expression](https://raw.githubusercontent.com/rstudio/cheatsheets/main/strings.pdf) statement (`(Cov|Mock)(\\d*)_S\\d*_R\\d*_trimmed.genes.results`) to grab those chunks. This statement says: capture a group of characters that is either Cov or Mock (`(Cov|Mock)`); then capture another group of characters that is a digit (`(\\d*)`); finally capture the suffix at the end that consists of S, some digit, an underscore, R, some digit, another underscore, and the string "trimmed.genes.results" (`_S\\d*_R\\d*_trimmed.genes.results`). The parentheses around the first two groups let us refer back to these grops in the order they were captured using `\\1` or `\\2`. In that way, R can read the entire messy sample name and return on the treatment if we select the first group, or only the replicate if we select the second group. Regular expressions can be tricky and it helps to play around with them, but they are also VERY powerful.
+  -   We used a function called `pivot_longer()` to reshape the columns 6 through 11 which contain the normalized counts for each sample. After this function is applied, instead of each row representing a single gene with counts side-by-side for each sample, we now have each row representing an observation of expression for a gene in each sample. The table now has 6x as many rows because each gene now has 6 observations. In this new format the gene names are repeated, but it means that each row of the data frame represent a single observation. For this function, we told R which columns to pivot (`cols=`), where to put the names of the pivoted columns (`names_to=`), and where to put the values for each of those pivoted columns (`values_to`). There are many ways to select the columns of sample names, but in this case, we just used columns 6 through 11. We called the new columns "Sample" and the values "NormCount".
+ -   Next we used a function called `mutate()` to create two new columns (`Treatment` and `Replicate`). We recognized that the treatment is the first part of the sample name and is immediately followed by the replicate number, and everything after that is junk but it follows the same pattern. We made a [regular expression](https://raw.githubusercontent.com/rstudio/cheatsheets/main/strings.pdf) statement (`(Cov|Mock)(\\d*)`) to grab those chunks. This statement says: capture a group of characters that is either Cov or Mock (`(Cov|Mock)`); then capture another group of characters that is a digit (`(\\d*)`). The parentheses around the groups let us refer back to these gruops in the order they were captured using `\\1` or `\\2`. In that way, R can read the entire messy sample name and return the treatment if we select the first group, or only the replicate if we select the second group. Regular expressions can be tricky and it helps to play around with them, but they are also VERY powerful. 
   -   We also used a tidy pipe (`%>%`) to string functions together and do them sequentially, rather than wrapping them in nested parentheses. this makes the chunk of code more readable to humans. Tidy pipes basically take the output of anything on the left side and use it as the default input for whatever function is on the right side. It is conventional to put each function and pipe one its own line for readability. R will assume that any line ending with a pipe will continue on the next line.
   
-One last thing to fix is to clean up the gene names. Right now the gene information is in the column `...1` and contains the ENSEMBL ID and the gene symbol separated by an underscore. We can use this consistent naming to split those two apart and create a new column with ust the gene symbol.
+One last thing to fix is to clean up the gene names and remove the repeated and unnecessary data. Right now the gene information is in the column `Row.names`` and contains the ENSEMBL ID and the gene symbol separated by an underscore. We can use this consistent naming to split those two apart and create a new column with just the gene symbol.
 
 ```{r TPM_clean}
-TPM_Clean <- TPM_Reshape %>% 
-  mutate(Gene=gsub("(\\w*\\.+\\d+)_(\\w*)", "\\2",`...1`),
-         ...1=NULL,
+DEG_Clean <- DEG_Reshape %>% 
+  mutate(Gene=gsub("(\\w*\\.+\\d+)_(\\w*)", "\\2",Row.names),
+         baseMean = NULL,
+         log2FoldChange = NULL,
+         pvalue=NULL,
+         padj=NULL,
+         Row.names = NULL,
          Sample=NULL) %>% 
-  relocate(Treatment, Replicate, Gene, TPM)
+  relocate(Treatment, Replicate, Gene, NormCount)
+
+# Check how it looks
+head(DEG_Clean)
 ```
 
 Here we did a couple things:
 
   -   Again we used tidy pipes to apply multiple functions sequentially, `mutate()` followed by `relocate()`
-  -   We used `mutate()` with another regular expression to capture the gene name separate from the ENSEMBL ID and put those in a new columns called `Gene`. As a chalenge, how might you modify the above code to return the ENSEMBL IDs instead of gene symbols?
-  -   We also used `mutate()` to remove the columns `Sample` and `...1` but setting their values to `NULL`. This is fine since the data from those columns has already been split out into better columns.
+  -   We used `mutate()` with another regular expression to capture the gene name separate from the ENSEMBL ID and put those in a new columns called `Gene`. As a challenge, how might you modify the above code to return the ENSEMBL IDs instead of gene symbols?
+  -   We also used `mutate()` to remove 6 columns by setting their values to `NULL`. This is fine since the data from those columns has already been split out into better columns or is unnecessary/inapplicable.
   -   Finally, we reordered the columns using `relocate()` so that they have a more intuitive order.
   
-The final thing we want to do is to summarize this data. For a bar graph, we'll use the average expression for each treatment, but we'll also need standard error values. We can calculate those here and create a new data frame `TPM_Summary`.
+The final thing we want to do is to summarize this data. For a bar graph, we'll use the average expression for each treatment, but we'll also need standard error values. We can calculate those here and create a new data frame `DEG_Summary`.
 
 ```{r TPM_summarize}
-TPM_Summary <- TPM_Clean %>% 
+DEG_Summary <- DEG_Clean %>% 
   group_by(Treatment, Gene) %>% 
-  mutate(Avg_TPM = mean(TPM),
-         SE_TPM = sd(TPM)/sqrt(n())) %>% 
-  select(Treatment, Gene, Avg_TPM, SE_TPM) %>% 
+  mutate(Avg_NormCount = mean(NormCount),
+         SE_NormCount = sd(NormCount)/sqrt(n())) %>% 
+  select(Treatment, Gene, Avg_NormCount, SE_NormCount) %>% 
   unique()
+
+# Check how it looks
+head(DEG_Summary)
 ```
 
 In the above chunk of code we:
 
   -   Used `group_by()` to create invisible groupings based on each combinations of `Treatment` and `Gene` that will allow us to summarize TPM only within those groups. 
-  -   Used `mutate()` to create a new column (`Avg_TPM`) with the mean of the TPM values for all replicates of each gene and treatment, and another column with the standard error (`SE_TPM`) of the same.
+  -   Used `mutate()` to create a new column (`Avg_NormCount`) with the mean of the normalized count values for all replicates of each gene and treatment, and another column with the standard error (`SE_NormCount`) of the same.
   -   Selected only the relevant columns with `select()`
   -   Removed duplicates with `unique()`
   
@@ -163,36 +178,36 @@ This will create a data frame where each row represents the average expression o
 
 ## Plot One Gene
 
-For the sake of ease, we'll just pick one gene to plot at first and then we'll generalize this to plot multiple genes with the same format later. 
+For the sake of ease, we'll just pick one gene to plot at first, and then we'll generalize this to plot multiple genes with the same format later. 
 
-First we'll create a list of genes we want to plot. Right now, this list will only have one entry, but making a list now will make it easier to scale up later. Since we're usinga COVID dataset, lets pick a gene that we expect might have a strong difference like *ACE2*
+First we'll create a list of genes we want to plot. Right now, this list will only have one entry, but making a list now will make it easier to scale up later. Since we're using a COVID dataset, lets pick a gene that we expect might have a strong difference like *ACE2*.
 
 ```{r GOI_bar_one}
 GOIs_1 <- c("ACE2")
 ```
 
-We can use tidy pipes to pipe our data right into ggplot and filter it for the genes of interest along the way. We'll use the `%in%` operator to only select the genes from our `TPM_Summary` that are present in our list of genes. Let's make a basic, but not very aesthetically pleasing bar graph of *ACE2*.
+We can use tidy pipes to pipe our data right into ggplot and filter it for the genes of interest along the way. We'll use the `%in%` operator to only select the genes from our `DEG_Summary` that are present in our list of genes. Let's make a basic, but not very aesthetically pleasing bar graph of *ACE2*.
 
 ```{r bar_plot_one_1}
-TPM_Summary %>% 
+DEG_Summary %>% 
   filter(Gene %in% GOIs_1) %>% 
   ggplot(aes(x=Treatment,
-             y=Avg_TPM)) +
+             y=Avg_NormCount)) +
   geom_col()
 ```
 
-This is the minimal plot of gene expression, we have picked the x-axis based on the values in our `Treatment` column and the y-axis from the values in the `Avg_TPM` column. We then used `geom_col()` to represent this data as a column. This works, but it is far from publication quality.
+This is the minimal plot of gene expression, we have picked the x-axis based on the values in our `Treatment` column and the y-axis from the values in the `Avg_NormCount` column. We then used `geom_col()` to represent this data as a column. This works, but it is far from publication quality.
 
 We should add the error bars in order to get a better sense of how different these groups are. We'll do this with the built-in `geom_errorbar()`. We'll need to give it a max and min height for the error bar. Since we reshaped our data to include separate rows for the different treatments, the standard errors were automatically calculated separately like we need. We just need to specify that the top of the error bar is the sum of the average expression and the standard error, while the bottom is the average expression minues the standard error.
 
 ```{r bar_plot_one_2}
-TPM_Summary %>% 
+DEG_Summary %>% 
   filter(Gene %in% GOIs_1) %>% 
   ggplot(aes(x=Treatment,
-             y=Avg_TPM)) +
+             y=Avg_NormCount)) +
   geom_col() +
-  geom_errorbar(aes(ymax = Avg_TPM+SE_TPM,
-                    ymin = Avg_TPM-SE_TPM))
+  geom_errorbar(aes(ymax = Avg_NormCount+SE_NormCount,
+                    ymin = Avg_NormCount-SE_NormCount))
 ```
 
 Now the plot is technically complete in terms of data we need to represent, but we can pretty it up a bit with the following:
@@ -203,17 +218,17 @@ Now the plot is technically complete in terms of data we need to represent, but 
   -   Narrow the error bar a bit
   
 ```{r bar_plot_one_3}
-TPM_Summary %>% 
+DEG_Summary %>% 
   filter(Gene %in% GOIs_1) %>% 
   ggplot(aes(x=Treatment,
-             y=Avg_TPM)) +
+             y=Avg_NormCount)) +
   geom_col() +
-  geom_errorbar(aes(ymax = Avg_TPM+SE_TPM,
-                    ymin = Avg_TPM-SE_TPM),
+  geom_errorbar(aes(ymax = Avg_NormCount+SE_NormCount,
+                    ymin = Avg_NormCount-SE_NormCount),
                 width=0.2) +
   theme_cowplot() +
   labs(x=NULL,
-       y="Average Transcripts per Million (TPM)",
+       y="Average Normalized Count",
        title=GOIs_1) +
   scale_y_continuous(expand = expansion(mult=c(0,0))) +
   theme(plot.title = element_text(face="italic", hjust=0.5))
@@ -224,23 +239,23 @@ We added a couple things here, so let's talk about each one:
   -   We first applied a theme with `theme_cowplot()`. There are several collections of themes that modify several elements at once. Others to consider are `theme_classic()`, `theme_minimal_grid()`, or `theme_halfopen()`. You could achieve the same effect by manually editing all of the individual theme elements inside of `theme()`, but these provide a good shorthand.
   -   We changes several labels with with `labs()` function. With this function you can manually set the x and y axis labels, the plot title, and others. In this case, we set a manual name for the y-axis, removed the x-axis label, and set the pot title to the gene of interest from our `GOIs_1` list.
   -   We added an argument to `geom_errorbar()` outside of the `aes()` statement. We changed `width=0.2` to narrow the width of the cap on the error bar to 20% of the width of the bar.
-  -   We removed the gap between the bottom of the bar and the x-axis by changing the scale of the y-axis with `scale_y_continuous(expand = expansion(mult=c(0,0)))`. This multiplies the end values of the y axis by 0, essentially providing no wiggle rooom between the top and bottom of the data and the axis. Instead of using `expand=` you could manually set y-axis limits with `limits=c(0,13)`, but you would need to change the upper value if we plotted a different gene with higher or lower expression. You may still need to play with the values in the expand statement.
+  -   We removed the gap between the bottom of the bar and the x-axis by changing the scale of the y-axis with `scale_y_continuous(expand = expansion(mult=c(0,0)))`. This multiplies the end values of the y axis by 0, essentially providing no wiggle room between the top and bottom of the data and the axis. Instead of using `expand=` you could manually set y-axis limits with `limits=c(0,800)`, but you would need to change the upper value if we plotted a different gene with higher or lower expression. You may still need to play with the values in the expand statement.
   -   Finally we tweaked the theme a little bit beyond what was set with `theme_cowplot()` with the `theme()` function. This gives us very fine access to many, many elements of the plot. Here we modified the plot title to be a text element that is in italics (`face="italic"`) and horizontally justified to the center (`hjust=0.5`).
   
-Finally, we will want to save this plot to a file. R provides several ways to do this, but for a single plot, the easiest is with `ggsave()`. This will save the last plot that was created to a file. It supports several file formats including .pdf, .png, .jpeg, etc. For simple line drawings like this PDF is prefered since the file sizes are very small and you can zoom infinitely without loss of resolution. The function will automatically determine the format based on the file name you provide. You can also specify the dimensions of the final plot with `height=` and `width=`.
+Finally, we will want to save this plot to a file. R provides several ways to do this, but for a single plot, the easiest is with `ggsave()`. This will save the last plot that was created to a file. It supports several file formats including .pdf, .png, .jpeg, etc. For simple line drawings like this PDF is preferred since the file sizes are very small and you can zoom infinitely without loss of resolution. The function will automatically determine the format based on the file name you provide. You can also specify the dimensions of the final plot with `height=` and `width=`.
 
 ```{r bar_save_one}
-TPM_Summary %>% 
+DEG_Summary %>% 
   filter(Gene %in% GOIs_1) %>% 
   ggplot(aes(x=Treatment,
-             y=Avg_TPM)) +
+             y=Avg_NormCount)) +
   geom_col() +
-  geom_errorbar(aes(ymax = Avg_TPM+SE_TPM,
-                    ymin = Avg_TPM-SE_TPM),
+  geom_errorbar(aes(ymax = Avg_NormCount+SE_NormCount,
+                    ymin = Avg_NormCount-SE_NormCount),
                 width=0.2) +
   theme_cowplot() +
   labs(x=NULL,
-       y="Average Transcripts per Million (TPM)",
+       y="Average Normalized Count",
        title=GOIs_1) +
   scale_y_continuous(expand = expansion(mult=c(0,0))) +
   theme(plot.title = element_text(face="italic", hjust=0.5))
@@ -263,17 +278,17 @@ To create the same plot many times, we'll use a tidyverse function called `map()
 ```{r bar_plot_many, message=FALSE, warning=FALSE}
 map(GOIs_Many,
     function(gene_name){
-      TPM_Summary %>% 
+      DEG_Summary %>% 
         filter(Gene %in% gene_name) %>% # note the substitution here
         ggplot(aes(x=Treatment,
-                   y=Avg_TPM)) +
+                   y=Avg_NormCount)) +
         geom_col() +
-        geom_errorbar(aes(ymax = Avg_TPM+SE_TPM,
-                          ymin = Avg_TPM-SE_TPM),
+        geom_errorbar(aes(ymax = Avg_NormCount+SE_NormCount,
+                          ymin = Avg_NormCount-SE_NormCount),
                       width=0.2) +
         theme_cowplot() +
         labs(x=NULL,
-             y="Average Transcripts per Million (TPM)",
+             y="Average Normalized Count",
              title=gene_name) + # and here
         scale_y_continuous(expand = expansion(mult=c(0,0))) +
         theme(plot.title = element_text(face="italic", hjust=0.5))
@@ -288,17 +303,17 @@ pdf("Demo/Bar_Many.pdf",
        width=2)
 map(GOIs_Many,
     function(gene_name){
-      TPM_Summary %>% 
+      DEG_Summary %>% 
         filter(Gene %in% gene_name) %>% # note the substitution here
         ggplot(aes(x=Treatment,
-                   y=Avg_TPM)) +
+                   y=Avg_NormCount)) +
         geom_col() +
-        geom_errorbar(aes(ymax = Avg_TPM+SE_TPM,
-                          ymin = Avg_TPM-SE_TPM),
+        geom_errorbar(aes(ymax = Avg_NormCount+SE_NormCount,
+                          ymin = Avg_NormCount-SE_NormCount),
                       width=0.2) +
         theme_cowplot() +
         labs(x=NULL,
-             y="Average Transcripts per Million (TPM)",
+             y="Average Normalized Count",
              title=gene_name) + # and here
         scale_y_continuous(expand = expansion(mult=c(0,0))) +
         theme(plot.title = element_text(face="italic", hjust=0.5))
@@ -310,36 +325,32 @@ dev.off()
 
 To get a higher-level summary of your experiment, it can be useful to create a volcano plot, which shows each gene as a point and plots the log2 fold change on the x-axis and the -log10 p-value on the y-axis. In this way, you can easy see how many genes are significantly up or down regulated.
 
-All of the data that we will need to create this plot are provided in the Tier 2 results and luckily are already in a format that is already very amenable to plotting.
+All of the data that we will need to create this plot are provided in the Tier 2 results and luckily are already in a format that is already very amenable to plotting, so we can start with the `DEG` object we already have.
 
 ## Prepare Differential Testing Data
 
-We'll read the data in first.
-
-```{r DEG_read, message=FALSE, warning=FALSE}
-# Read in data
-DEG <- read_csv("Demo/Cov_vs_Mock_DEGs_all.csv")
-
-# Check how it looks
+```{r}
+# Reminder of how the data looks 
 head(DEG)
 ```
 
-Here the first column has the same format as with the expression data, where the gene name is provided as the ENSEMBL ID and the gene symbol separated by an underscore. If we ever want to filter the gene list or add labels to points, it will be useful to have only the gene symbol. It isn't strictly necessary for this tutorial to split the column, but we'll do it anyways in case you want to apply an advance plotting on your own. We'll usethe same `mutate()` command as before, but here we'll use a new argument `.before=1` to place the new column at the left of the data frame.
+
+Here the first column has the old format, where the gene name is provided as the ENSEMBL ID and the gene symbol separated by an underscore. We'll use the same `mutate()` command as before, but here we'll use a new argument `.before=1` to place the new column at the left of the data frame.
 
 ```{r DEG_clean}
-DEG_Clean <- DEG %>% 
+DEG_Rename <- DEG %>% 
   mutate(Gene = gsub("(\\w*\\.+\\d+)_(\\w*)", "\\2",Row.names),
          .before=1)
 
 # Check how it looks
-head(DEG_Clean)
+head(DEG_Rename)
 ```
 
-The main data transformation is to convert the p-value to -log10 scale. We could do that during the plotting, but it is computationally better to do it only once before ploting. To avoid overplotting, we will also filter the data to include only significant DEGs. This is a matter or aesthetic preference and you can simply leave out the filtering line to plot all of the genes regardless of significance.
+The main data transformation is to convert the p-value to -log10 scale. We could do that during the plotting, but it is computationally better to do it only once before plotting. To avoid overplotting, we will also filter the data to include only significant DEGs. This is a matter or aesthetic preference and you can simply leave out the filtering line to plot all of the genes regardless of significance.
 
 ```{r DEG_filter}
 # Filter and transform
-DEG_Filtered <- DEG_Clean %>% 
+DEG_Filtered <- DEG_Rename %>% 
   filter(padj<0.05) %>% 
   mutate(neg_log10_padj = -log10(padj))
 
